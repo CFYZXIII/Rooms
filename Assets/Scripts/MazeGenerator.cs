@@ -1,9 +1,12 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 
 public class MazeGenerator : MonoBehaviour
 {
     [field: SerializeField] public Room RoomPrefab { get; private set; }
+
+    [field: SerializeField] public GameObject Dot { get; private set; }
     [field: SerializeField] public int Height { get; private set; }
     [field: SerializeField] public int Width { get; private set; }
     [field: SerializeField] public float Delta { get; private set; }
@@ -12,6 +15,40 @@ public class MazeGenerator : MonoBehaviour
     public void Start()
     {
         GenerateMaze();
+        var lastNode = GetMaxDistanceNode();
+        ((Room)lastNode).Base.color = Color.green;
+        DrawPath(lastNode);
+    }
+
+    private void DrawPath(Node node)
+    {
+        var next = node;
+
+        while (next != null)
+        {
+            var dot = Instantiate<GameObject>(Dot);
+            dot.transform.position = next.transform.position;
+            next = next.parentNode;
+        }
+    }
+
+    private Node GetMaxDistanceNode()
+    {
+        Node node = null;
+        for (int i = 0; i < roomGrid.GetLength(0); i++)
+        {
+            for (int j = 0; j < roomGrid.GetLength(0); j++)
+            {
+                if (node == null)
+                    node = roomGrid[i, j];
+                else
+                    if (roomGrid[i, j].Distance > node.Distance)
+                {
+                    node = roomGrid[i, j];
+                }
+            }
+        }
+        return node;
     }
 
     /// <summary>
@@ -65,14 +102,12 @@ public class MazeGenerator : MonoBehaviour
                 //Справа
                 if (curentRoom.X - startRoom.X > 0)
                 {
-                    curentRoom.LeftDoor.gameObject.SetActive(true);
                     startRoom.RightDoor.gameObject.SetActive(true);
                 }
 
                 //Слева
                 if (curentRoom.X - startRoom.X < 0)
                 {
-                    startRoom.LeftDoor.gameObject.SetActive(true);
                     curentRoom.RightDoor.gameObject.SetActive(true);
                 }
 
@@ -80,15 +115,15 @@ public class MazeGenerator : MonoBehaviour
                 if (curentRoom.Y - startRoom.Y > 0)
                 {
                     startRoom.TopDoor.gameObject.SetActive(true);
-                    curentRoom.BottomDoor.gameObject.SetActive(true);
                 }
 
                 //Снизу
                 if (curentRoom.Y - startRoom.Y < 0)
                 {
                     curentRoom.TopDoor.gameObject.SetActive(true);
-                    startRoom.BottomDoor.gameObject.SetActive(true);
                 }
+
+                curentRoom.AddConnection(startRoom);
 
                 roomStack.Push(curentRoom);
                 visitedList.Add(curentRoom);
